@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'labjack = labjack.labjack_node.py:main'
+            'labjack_node = labjack.labjack_node:main'
         ],
     },
 )

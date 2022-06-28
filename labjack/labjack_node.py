@@ -6,30 +6,32 @@ import rclpy.node
 from u3 import U3 as lj
 import u3
 from functools import partial
-from ssp_interfaces import AnalogInput, DigitalInput
+from ssp_interfaces.msg import AnalogInput, DigitalInput
 
 class LabjackNode(rclpy.node.Node):
     def __init__(self, name):
         super().__init__(name)
-        self.declare_params()
-        self.params = self.fetch_params()
-        self.dev = lj()
-        self.config_labjack()
-        self.create_timed_pubs()
-        self.frame_id = ""
         self.SINGLE_END_REF_CHAN    = 31
         self.MAX_BIN_VAL            = 65536
         self.SPAN_LV_SE             = 2.44
         self.SPAN_LV_DIFF           = 4.88
         self.SPAN_HV                = 20.6
         self.MIN_CHAN               = 0
-        self.MAX_CHAN               = 19
+        self.MAX_CHAN               = 20
         self.MIN_DIGITAL_CHAN       = 4
         self.MAX_DIGITAL_CHAN       = self.MAX_CHAN
         self.MIN_ANALOG_CHAN        = self.MIN_CHAN
-        self.MAX_ANALOG_CHAN        = 15
+        self.MAX_ANALOG_CHAN        = 16
         self.MIN_HV_ANALOG_CHAN     = self.MIN_CHAN
-        self.MAX_HV_ANALOG_CHAN     = 3
+        self.MAX_HV_ANALOG_CHAN     = 4
+        self.timer_list             = []
+        self.publisher_list         = []
+        self.declare_params()
+        self.params = self.fetch_params()
+        self.dev = lj()
+        self.config_labjack()
+        self.create_timed_pubs()
+        self.frame_id = ""
 
     def analog_timer_cb(self, channel):
         msg = AnalogInput()
@@ -108,7 +110,7 @@ class LabjackNode(rclpy.node.Node):
 
         # Second, fetch parameters common to all channels
         for channel in range(self.MIN_CHAN, self.MAX_CHAN):
-            results['channels'][channel] = {}
+            results['channels'].insert(channel, {})
             results['channels'][channel]['active'] = self.get_parameter(
                 'channel/' + str(channel) + '/active').get_parameter_value().bool_value
             results['channels'][channel]['period'] = self.get_parameter(
@@ -135,36 +137,34 @@ class LabjackNode(rclpy.node.Node):
         eio_analog  = 0x00
         fio_analog  = 0x0f
         for channel in range(self.MIN_CHAN, self.MAX_CHAN):
-            if self.params[channel]['active']:
-                if self.params[channel]['is_analog']:
+            if self.params['channels'][channel]['active']:
+                if self.params['channels'][channel]['is_analog']:
                     if channel < 8:
                         fio_analog = fio_analog | (1 << count)
                     elif channel < 16:
                         eio_analog = eio_analog | (1 << count)
                 else:
                     lj.getFeedback(u3.BitDirWrite(IONumber = count, Direction = 0))
-        self.get_logger().info("Setting FIOAnalog to %d and EIOAnalog to %d" % fio_analog, eio_analog)
+        self.get_logger().info("Setting FIOAnalog to {0} and EIOAnalog to {1}".format(fio_analog, eio_analog))
         self.dev.configIO(FIOAnalog=fio_analog, EIOAnalog=eio_analog)
 
     def create_timed_pubs(self):
-        self.timers = []
-        self.publishers = []
         for chan in range(self.MIN_CHAN, self.MAX_CHAN):
-            if self.params[chan]['active']:
-                period = self.params[chan]['period']
-                if self.params[chan]['is_analog']:
-                    self.timers.append(self.create_timer(period, partial(self.analog_timer_cb, channel=chan)))
-                    self.publishers.append(self.create_publisher(AnalogInput, 'analog/' + str(chan)))
+            if self.params['channels'][chan]['active']:
+                period = self.params['channels'][chan]['period']
+                if self.params['channels'][chan]['is_analog']:
+                    self.timer_list.append(self.create_timer(period, partial(self.analog_timer_cb, channel=chan)))
+                    self.publisher_list.append(self.create_publisher(AnalogInput, 'analog/' + str(chan)))
                 else:
-                    self.timers.append(self.create_timer(period, partial(self.digital_timer_cb, channel=chan)))
-                    self.publishers.append(self.create_publisher(AnalogInput, 'analog/' + str(chan)))
+                    self.timer_list.append(self.create_timer(period, partial(self.digital_timer_cb, channel=chan)))
+                    self.publisher_list.append(self.create_publisher(AnalogInput, 'analog/' + str(chan)))
             else:
-                self.timers.append(None)
-                self.publishers.append(None)
+                self.timer_list.append(None)
+                self.publisher_list.append(None)
 
 
-def main():
-    rclpy.init()
+def main(args=None):
+    rclpy.init(args=args)
     node = LabjackNode('labjack_uc3_hv')
     rclpy.spin(node)
 
