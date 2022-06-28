@@ -3,9 +3,9 @@
 <package format="3">
   <name>labjack</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="pierce@ladonrobotics.com">pierce</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Labjack U3 interface node</description>
+  <maintainer email="pierce@ladonrobotics.com">Pierce Nichols</maintainer>
+  <license>Copyright Ladon Robotics (c) 2022. All rights reserved.</license>
 
   <depend>rclpy</depend>
   <depend>ssp_interfaces</depend>

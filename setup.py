@@ -13,13 +13,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='pierce',
+    maintainer='Pierce Nichols',
     maintainer_email='pierce@ladonrobotics.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='Labjack U3 interface node',
+    license='Copyright Ladon Robotics (c) 2022. All rights reserved.',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'labjack = labjack.labjack_node.py:main'
         ],
     },
 )
