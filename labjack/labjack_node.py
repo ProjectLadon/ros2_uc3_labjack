@@ -40,9 +40,9 @@ class LabjackNode(rclpy.node.Node):
         offset = self.params['channels'][channel]['analog']['offset']
         gain = self.params['channels'][channel]['analog']['gain']
         try:
-            msg.raw_value = self.dev.getAIN(channel, neg_channel)
+            msg.raw_value = int(self.dev.getAIN(channel, neg_channel))
         except Exception as e:
-            self.get_logger().error("Attempt to read analog value on channel %d failed, error %s" % channel, str(e))
+            self.get_logger().error("Attempt to read analog value on channel {0} failed, error {1}".format(channel, str(e)))
         is_lv = True
         is_se = False
         if (channel < self.MAX_HV_ANALOG_CHAN): is_lv = False
@@ -52,21 +52,21 @@ class LabjackNode(rclpy.node.Node):
             isSpecialSetting=False, channelNumber=channel)
         msg.scaled_value = (msg.scaled_voltage + offset) * gain
         try:
-            self.publishers[channel].publish(msg)
+            self.publisher_list[channel].publish(msg)
         except Exception as e:
-            self.get_logger().error("Attempt to publish analog value on channel %d failed, error %s" % channel, str(e))
+            self.get_logger().error("Attempt to publish analog value on channel {0} failed, error {1}".format(channel, str(e)))
 
     def digital_timer_cb(self, channel):
         msg = DigitalInput()
         msg.header.frame_id = self.frame_id
         try:
-            msg.state = self.dev.getDIState(channel)
+            msg.state = bool(self.dev.getDIState(channel))
         except Exception as e:
-            self.get_logger().error("Attempt to read digital value on channel %d failed, error %s" % channel, str(e))
+            self.get_logger().error("Attempt to read digital value on channel {0} failed, error {1}".format(channel, str(e)))
         try:
-            self.publishers[channel].publish(msg)
+            self.publisher_list[channel].publish(msg)
         except Exception as e:
-            self.get_logger().error("Attempt to publish digital value on channel %d failed, error %s" % channel, str(e))
+            self.get_logger().error("Attempt to publish digital value on channel {0} failed, error {1}".format(channel, str(e)))
 
     def declare_params(self):
         self.declare_parameter('frame_id', '')
@@ -140,11 +140,11 @@ class LabjackNode(rclpy.node.Node):
             if self.params['channels'][channel]['active']:
                 if self.params['channels'][channel]['is_analog']:
                     if channel < 8:
-                        fio_analog = fio_analog | (1 << count)
+                        fio_analog = fio_analog | (1 << channel)
                     elif channel < 16:
-                        eio_analog = eio_analog | (1 << count)
+                        eio_analog = eio_analog | (1 << (channel - 8))
                 else:
-                    lj.getFeedback(u3.BitDirWrite(IONumber = count, Direction = 0))
+                    self.dev.getFeedback(u3.BitDirWrite(IONumber = channel, Direction = 0))
         self.get_logger().info("Setting FIOAnalog to {0} and EIOAnalog to {1}".format(fio_analog, eio_analog))
         self.dev.configIO(FIOAnalog=fio_analog, EIOAnalog=eio_analog)
 
@@ -154,10 +154,10 @@ class LabjackNode(rclpy.node.Node):
                 period = self.params['channels'][chan]['period']
                 if self.params['channels'][chan]['is_analog']:
                     self.timer_list.append(self.create_timer(period, partial(self.analog_timer_cb, channel=chan)))
-                    self.publisher_list.append(self.create_publisher(AnalogInput, 'analog/' + str(chan)))
+                    self.publisher_list.append(self.create_publisher(AnalogInput, 'analog/ch' + str(chan), 10))
                 else:
                     self.timer_list.append(self.create_timer(period, partial(self.digital_timer_cb, channel=chan)))
-                    self.publisher_list.append(self.create_publisher(AnalogInput, 'analog/' + str(chan)))
+                    self.publisher_list.append(self.create_publisher(DigitalInput, 'digital/ch' + str(chan), 10))
             else:
                 self.timer_list.append(None)
                 self.publisher_list.append(None)
