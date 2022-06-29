@@ -36,11 +36,12 @@ class LabjackNode(rclpy.node.Node):
     def analog_timer_cb(self, channel):
         msg = AnalogInput()
         msg.header.frame_id = self.frame_id
+        msg.header.stamp = self.get_clock().now().to_msg()
         neg_channel = self.params['channels'][channel]['analog']['negative_channel']
         offset = self.params['channels'][channel]['analog']['offset']
         gain = self.params['channels'][channel]['analog']['gain']
         try:
-            msg.raw_value = int(self.dev.getAIN(channel, neg_channel))
+            msg.raw_value = self.dev.getFeedback(u3.AIN(channel, neg_channel))[0]
         except Exception as e:
             self.get_logger().error("Attempt to read analog value on channel {0} failed, error {1}".format(channel, str(e)))
         is_lv = True
@@ -59,6 +60,7 @@ class LabjackNode(rclpy.node.Node):
     def digital_timer_cb(self, channel):
         msg = DigitalInput()
         msg.header.frame_id = self.frame_id
+        msg.header.stamp = self.get_clock().now().to_msg()
         try:
             msg.state = bool(self.dev.getDIState(channel))
         except Exception as e:
