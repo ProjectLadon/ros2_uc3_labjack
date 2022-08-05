@@ -156,10 +156,10 @@ class LabjackNode(rclpy.node.Node):
                 period = self.params['channels'][chan]['period']
                 if self.params['channels'][chan]['is_analog']:
                     self.timer_list.append(self.create_timer(period, partial(self.analog_timer_cb, channel=chan)))
-                    self.publisher_list.append(self.create_publisher(AnalogInput, 'analog/ch' + str(chan), 10))
+                    self.publisher_list.append(self.create_publisher(AnalogInput, '~/analog/ch' + str(chan), 10))
                 else:
                     self.timer_list.append(self.create_timer(period, partial(self.digital_timer_cb, channel=chan)))
-                    self.publisher_list.append(self.create_publisher(DigitalInput, 'digital/ch' + str(chan), 10))
+                    self.publisher_list.append(self.create_publisher(DigitalInput, '~/digital/ch' + str(chan), 10))
             else:
                 self.timer_list.append(None)
                 self.publisher_list.append(None)
