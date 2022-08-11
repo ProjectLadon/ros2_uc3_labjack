@@ -73,16 +73,16 @@ class LabjackNode(rclpy.node.Node):
     def declare_params(self):
         self.declare_parameter('frame_id', '')
         for channel in range(self.MIN_CHAN, self.MAX_CHAN):
-            self.declare_parameter('channel/' + str(channel) + '/active', False)        # Is the channel active?
-            self.declare_parameter('channel/' + str(channel) + '/period', 1.0)          # Period for sampling the channel, in seconds
+            self.declare_parameter('channel.' + str(channel) + '.active', False)        # Is the channel active?
+            self.declare_parameter('channel.' + str(channel) + '.period', 1.0)          # Period for sampling the channel, in seconds
         for channel in range(self.MIN_HV_ANALOG_CHAN, self.MAX_HV_ANALOG_CHAN):
-            self.declare_parameter('channel/' + str(channel) + '/is_analog', True)     # Is the channel analog?
+            self.declare_parameter('channel.' + str(channel) + '.is_analog', True)     # Is the channel analog?
         for channel in range(self.MIN_DIGITAL_CHAN, self.MAX_DIGITAL_CHAN):
-            self.declare_parameter('channel/' + str(channel) + '/is_analog', False)     # Is the channel analog?
+            self.declare_parameter('channel.' + str(channel) + '.is_analog', False)     # Is the channel analog?
         for channel in range(self.MIN_ANALOG_CHAN, self.MAX_ANALOG_CHAN):
-            self.declare_parameter('channel/' + str(channel) + '/analog/negative_channel', self.SINGLE_END_REF_CHAN)  # Defaults to single ended
-            self.declare_parameter('channel/' + str(channel) + '/analog/offset', 0.0)   # offset to convert volts to engineering units
-            self.declare_parameter('channel/' + str(channel) + '/analog/gain', 1.0)     # gain to convert volts to engineering units
+            self.declare_parameter('channel.' + str(channel) + '.analog.negative_channel', self.SINGLE_END_REF_CHAN)  # Defaults to single ended
+            self.declare_parameter('channel.' + str(channel) + '.analog.offset', 0.0)   # offset to convert volts to engineering units
+            self.declare_parameter('channel.' + str(channel) + '.analog.gain', 1.0)     # gain to convert volts to engineering units
    
     def fetch_params(self):
         results = {'channels' : []}
@@ -93,18 +93,18 @@ class LabjackNode(rclpy.node.Node):
         for channel in range(self.MIN_HV_ANALOG_CHAN, self.MAX_HV_ANALOG_CHAN):
             # Must be analog
             hv_fixed_params.append(rclpy.parameter.Parameter(
-                'channel/' + str(channel) + '/is_analog', 
+                'channel.' + str(channel) + '.is_analog', 
                 rclpy.Parameter.Type.BOOL, 
                 True))
             # Must be single ended
             hv_fixed_params.append(rclpy.parameter.Parameter(
-                'channel/' + str(channel) + '/analog/negative_channel', 
+                'channel.' + str(channel) + '.analog.negative_channel', 
                 rclpy.Parameter.Type.INTEGER, 
                 31))
         for channel in range((self.MAX_ANALOG_CHAN + 1), self.MAX_DIGITAL_CHAN):
             # Must be digital
             gpio_fixed_params.append(rclpy.parameter.Parameter(
-                'channel/' + str(channel) + '/is_analog', 
+                'channel.' + str(channel) + '.is_analog', 
                 rclpy.Parameter.Type.BOOL, 
                 False))
         self.set_parameters(hv_fixed_params)
@@ -114,21 +114,21 @@ class LabjackNode(rclpy.node.Node):
         for channel in range(self.MIN_CHAN, self.MAX_CHAN):
             results['channels'].insert(channel, {})
             results['channels'][channel]['active'] = self.get_parameter(
-                'channel/' + str(channel) + '/active').get_parameter_value().bool_value
+                'channel.' + str(channel) + '.active').get_parameter_value().bool_value
             results['channels'][channel]['period'] = self.get_parameter(
-                'channel/' + str(channel) + '/period').get_parameter_value().double_value
+                'channel.' + str(channel) + '.period').get_parameter_value().double_value
             results['channels'][channel]['is_analog'] = self.get_parameter(
-                'channel/' + str(channel) + '/is_analog').get_parameter_value().bool_value
+                'channel.' + str(channel) + '.is_analog').get_parameter_value().bool_value
 
         # Third, fetch analog specific parameters
         for channel in range(self.MIN_ANALOG_CHAN, self.MAX_ANALOG_CHAN):
             results['channels'][channel]['analog'] = {}
             results['channels'][channel]['analog']['negative_channel'] = self.get_parameter(
-                'channel/' + str(channel) + '/analog/negative_channel').get_parameter_value().integer_value
+                'channel.' + str(channel) + '.analog.negative_channel').get_parameter_value().integer_value
             results['channels'][channel]['analog']['offset'] = self.get_parameter(
-                'channel/' + str(channel) + '/analog/offset').get_parameter_value().double_value
+                'channel.' + str(channel) + '.analog.offset').get_parameter_value().double_value
             results['channels'][channel]['analog']['gain'] = self.get_parameter(
-                'channel/' + str(channel) + '/analog/gain').get_parameter_value().double_value
+                'channel.' + str(channel) + '.analog.gain').get_parameter_value().double_value
 
         self.get_logger().info('Labjack parameters: ' + str(results))
 
